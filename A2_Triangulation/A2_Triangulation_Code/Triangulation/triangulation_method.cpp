@@ -29,14 +29,6 @@
 
 using namespace easy3d;
 
-// determinant of a 3 * 3 matrix
-double determinant(const Matrix33& matrix) {
-    return matrix(0,0) * (matrix(1,1) * matrix(2,2) - matrix(1,2) * matrix(2,1))
-         - matrix(0,1) * (matrix(1,0) * matrix(2,2) - matrix(1,2) * matrix(2,0))
-         + matrix(0,2) * (matrix(1,0) * matrix(2,1) - matrix(1,1) * matrix(2,0));
-}
-
-
 
 /**
  * TODO: Finish this function for reconstructing 3D geometry from corresponding image points.
@@ -229,30 +221,18 @@ bool Triangulation::triangulation(
     svd_decompose(E, EU, Esigma, EV);
     // 4. make sure the E has two identical sigular values and the 3rd is 0
     double new_sigma = (Esigma(0, 0) + Esigma(1, 1)) / 2.0;
-    Matrix33 Sigma = (new_sigma, 0, 0,
-                      0, new_sigma, 0,
-                      0, 0, 0);
+    Matrix33 Sigma(new_sigma, 0, 0,
+                   0, new_sigma, 0,
+                   0, 0, 0);
     E = EU * Sigma * EV.transpose();
     // 4. svd decompose again
     svd_decompose(E, EU, Esigma, EV);
-    // 5. make sure det(R) > 0
+    // 5. rotation matrix
     Matrix33 W(0, -1, 0,
                1, 0, 0,
                0, 0, 1);
-    // intermediate r = u * w * v_transpose or r = u * w_transpose * v_transpose
-    Matrix33 r1 = EU * W * EV.transpose();
-    Matrix33 r2 = EU * W.transpose() * EV.transpose();
-    double determinant_r1 = determinant(r1);
-    double determinant_r2 = determinant(r2);
-    // rotation matrix R
-    Matrix33 R1 = determinant_r1 * r1;
-    Matrix33 R2 = determinant_r2 * r2;
-    if (determinant(R1) < 0){
-      R1 = -R1;
-    }
-    if (determinant(R2) < 0){
-      R2 = -R2;
-    }
+    Matrix33 R1 = EU * W * EV.transpose();
+    Matrix33 R2 = EU * W.transpose() * EV.transpose();
     // 6.t is the last column of U
     Vector3D t1 = EU.get_column(EU.cols() - 1);
     Vector3D t2 = - EU.get_column(EU.cols() - 1);
