@@ -231,8 +231,12 @@ bool Triangulation::triangulation(
     Matrix33 W(0, -1, 0,
                1, 0, 0,
                0, 0, 1);
-    Matrix33 R1 = EU * W * EV.transpose();
-    Matrix33 R2 = EU * W.transpose() * EV.transpose();
+    Matrix33 r1 = EU * W * EV.transpose();
+    Matrix33 r2 = EU * W.transpose() * EV.transpose();
+    double determinant_r1 = determinant(r1);
+    double determinant_r2 = determinant(r2);
+    Matrix33 R1 = determinant_r1 * r1;
+    Matrix33 R2 = determinant_r2 * r2;
     // 6.t is the last column of U
     Vector3D t1 = EU.get_column(EU.cols() - 1);
     Vector3D t2 = - EU.get_column(EU.cols() - 1);
