@@ -29,6 +29,14 @@
 
 using namespace easy3d;
 
+// determinant of a 3 * 3 matrix
+double determinant(const Matrix33& matrix) {
+    return matrix(0,0) * (matrix(1,1) * matrix(2,2) - matrix(1,2) * matrix(2,1))
+         - matrix(0,1) * (matrix(1,0) * matrix(2,2) - matrix(1,2) * matrix(2,0))
+         + matrix(0,2) * (matrix(1,0) * matrix(2,1) - matrix(1,1) * matrix(2,0));
+}
+
+
 
 /**
  * TODO: Finish this function for reconstructing 3D geometry from corresponding image points.
@@ -54,78 +62,78 @@ bool Triangulation::triangulation(
 
     std::cout << "\nTODO: implement the 'triangulation()' function in the file 'Triangulation/triangulation_method.cpp'\n\n";
 
-    std::cout << "[Liangliang]:\n"
-        "\tSimilar to the first assignment, basic linear algebra data structures and functions are provided in\n"
-        "\tthe following files:\n"
-        "\t    - Triangulation/matrix.h: handles matrices of arbitrary dimensions and related functions.\n"
-        "\t    - Triangulation/vector.h: manages vectors of arbitrary sizes and related functions.\n"
-        "\t    - Triangulation/matrix_algo.h: contains functions for determinant, inverse, SVD, linear least-squares...\n"
-        "\tFor more details about these data structures and a complete list of related functions, please\n"
-        "\trefer to the header files mentioned above.\n\n"
-        "\tIf you choose to implement the non-linear method for triangulation (optional task). Please\n"
-        "\trefer to 'Tutorial_NonlinearLeastSquares/main.cpp' for an example and some explanations.\n\n"
-        "\tFor your final submission, adhere to the following guidelines:\n"
-        "\t    - submit ONLY the 'Triangulation/triangulation_method.cpp' file.\n"
-        "\t    - remove ALL unrelated test code, debugging code, and comments.\n"
-        "\t    - ensure that your code compiles and can reproduce your results WITHOUT ANY modification.\n\n" << std::flush;
-
-    /// Below are a few examples showing some useful data structures and APIs.
-
-    /// define a 2D vector/point
-    Vector2D b(1.1, 2.2);
-
-    /// define a 3D vector/point
-    Vector3D a(1.1, 2.2, 3.3);
-
-    /// get the Cartesian coordinates of a (a is treated as Homogeneous coordinates)
-    Vector2D p = a.cartesian();
-
-    /// get the Homogeneous coordinates of p
-    Vector3D q = p.homogeneous();
-
-    /// define a 3 by 3 matrix (and all elements initialized to 0.0)
-    Matrix33 A;
-
-    /// define and initialize a 3 by 3 matrix
-    Matrix33 T(1.1, 2.2, 3.3,
-        0, 2.2, 3.3,
-        0, 0, 1);
-
-    /// define and initialize a 3 by 4 matrix
-    Matrix34 M(1.1, 2.2, 3.3, 0,
-        0, 2.2, 3.3, 1,
-        0, 0, 1, 1);
-
-    /// set first row by a vector
-    M.set_row(0, Vector4D(1.1, 2.2, 3.3, 4.4));
-
-    /// set second column by a vector
-    M.set_column(1, Vector3D(5.5, 5.5, 5.5));
-
-    /// define a 15 by 9 matrix (and all elements initialized to 0.0)
-    Matrix W(15, 9, 0.0);
-    /// set the first row by a 9-dimensional vector
-    W.set_row(0, { 0, 1, 2, 3, 4, 5, 6, 7, 8 }); // {....} is equivalent to a std::vector<double>
-
-    /// get the number of rows.
-    int num_rows = W.rows();
-
-    /// get the number of columns.
-    int num_cols = W.cols();
-
-    /// get the the element at row 1 and column 2
-    double value = W(1, 2);
-
-    /// get the last column of a matrix
-    Vector last_column = W.get_column(W.cols() - 1);
-
-    /// define a 3 by 3 identity matrix
-    Matrix33 I = Matrix::identity(3, 3, 1.0);
-
-    /// matrix-vector product
-    Vector3D v = M * Vector4D(1, 2, 3, 4); // M is 3 by 4
-
-    ///For more functions of Matrix and Vector, please refer to 'matrix.h' and 'vector.h'
+//    std::cout << "[Liangliang]:\n"
+//        "\tSimilar to the first assignment, basic linear algebra data structures and functions are provided in\n"
+//        "\tthe following files:\n"
+//        "\t    - Triangulation/matrix.h: handles matrices of arbitrary dimensions and related functions.\n"
+//        "\t    - Triangulation/vector.h: manages vectors of arbitrary sizes and related functions.\n"
+//        "\t    - Triangulation/matrix_algo.h: contains functions for determinant, inverse, SVD, linear least-squares...\n"
+//        "\tFor more details about these data structures and a complete list of related functions, please\n"
+//        "\trefer to the header files mentioned above.\n\n"
+//        "\tIf you choose to implement the non-linear method for triangulation (optional task). Please\n"
+//        "\trefer to 'Tutorial_NonlinearLeastSquares/main.cpp' for an example and some explanations.\n\n"
+//        "\tFor your final submission, adhere to the following guidelines:\n"
+//        "\t    - submit ONLY the 'Triangulation/triangulation_method.cpp' file.\n"
+//        "\t    - remove ALL unrelated test code, debugging code, and comments.\n"
+//        "\t    - ensure that your code compiles and can reproduce your results WITHOUT ANY modification.\n\n" << std::flush;
+//
+//    /// Below are a few examples showing some useful data structures and APIs.
+//
+//    /// define a 2D vector/point
+//    Vector2D b(1.1, 2.2);
+//
+//    /// define a 3D vector/point
+//    Vector3D a(1.1, 2.2, 3.3);
+//
+//    /// get the Cartesian coordinates of a (a is treated as Homogeneous coordinates)
+//    Vector2D p = a.cartesian();
+//
+//    /// get the Homogeneous coordinates of p
+//    Vector3D q = p.homogeneous();
+//
+//    /// define a 3 by 3 matrix (and all elements initialized to 0.0)
+//    Matrix33 A;
+//
+//    /// define and initialize a 3 by 3 matrix
+//    Matrix33 T(1.1, 2.2, 3.3,
+//        0, 2.2, 3.3,
+//        0, 0, 1);
+//
+//    /// define and initialize a 3 by 4 matrix
+//    Matrix34 M(1.1, 2.2, 3.3, 0,
+//        0, 2.2, 3.3, 1,
+//        0, 0, 1, 1);
+//
+//    /// set first row by a vector
+//    M.set_row(0, Vector4D(1.1, 2.2, 3.3, 4.4));
+//
+//    /// set second column by a vector
+//    M.set_column(1, Vector3D(5.5, 5.5, 5.5));
+//
+//    /// define a 15 by 9 matrix (and all elements initialized to 0.0)
+//    Matrix W(15, 9, 0.0);
+//    /// set the first row by a 9-dimensional vector
+//    W.set_row(0, { 0, 1, 2, 3, 4, 5, 6, 7, 8 }); // {....} is equivalent to a std::vector<double>
+//
+//    /// get the number of rows.
+//    int num_rows = W.rows();
+//
+//    /// get the number of columns.
+//    int num_cols = W.cols();
+//
+//    /// get the the element at row 1 and column 2
+//    double value = W(1, 2);
+//
+//    /// get the last column of a matrix
+//    Vector last_column = W.get_column(W.cols() - 1);
+//
+//    /// define a 3 by 3 identity matrix
+//    Matrix33 I = Matrix::identity(3, 3, 1.0);
+//
+//    /// matrix-vector product
+//    Vector3D v = M * Vector4D(1, 2, 3, 4); // M is 3 by 4
+//
+//    ///For more functions of Matrix and Vector, please refer to 'matrix.h' and 'vector.h'
 
     // TODO: delete all above example code in your final submission
 
@@ -209,6 +217,46 @@ bool Triangulation::triangulation(
 
     //      - compute the essential matrix E;
     //      - recover rotation R and t.
+    // 1。 construct intrinsic matrix K
+    Matrix33 K(fx, s, cx,
+             0, fy, cy,
+             0, 0, 1);
+
+    // 2. calculate E
+    Matrix33 E = K.transpose() * F * K;
+    // 3. SVD decompose of E
+    Matrix33 EU, Esigma, EV;
+    svd_decompose(E, EU, Esigma, EV);
+    // 4. make sure the E has two identical sigular values and the 3rd is 0
+    double new_sigma = (Esigma(0, 0) + Esigma(1, 1)) / 2.0;
+    Matrix33 Sigma = (new_sigma, 0, 0,
+                      0, new_sigma, 0,
+                      0, 0, 0);
+    E = EU * Sigma * EV.transpose();
+    // 4. svd decompose again
+    svd_decompose(E, EU, Esigma, EV);
+    // 5. make sure det(R) > 0
+    Matrix33 W(0, -1, 0,
+               1, 0, 0,
+               0, 0, 1);
+    // intermediate r = u * w * v_transpose or r = u * w_transpose * v_transpose
+    Matrix33 r1 = EU * W * EV.transpose();
+    Matrix33 r2 = EU * W.transpose() * EV.transpose();
+    double determinant_r1 = determinant(r1);
+    double determinant_r2 = determinant(r2);
+    // rotation matrix R
+    Matrix33 R1 = determinant_r1 * r1;
+    Matrix33 R2 = determinant_r2 * r2;
+    if (determinant(R1) < 0){
+      R1 = -R1;
+    }
+    if (determinant(R2) < 0){
+      R2 = -R2;
+    }
+    // 6.t is the last column of U
+    Vector3D t1 = EU.get_column(EU.cols() - 1);
+    Vector3D t2 = - EU.get_column(EU.cols() - 1);
+    // there are 4 possible pairs (R1 t1), (R2 t2), (R1 t2), (R2 t1)
 
     // TODO: Reconstruct 3D points. The main task is
     //      - triangulate a pair of image points (i.e., compute the 3D coordinates for each corresponding point pair)
