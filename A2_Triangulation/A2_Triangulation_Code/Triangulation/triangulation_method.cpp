@@ -1,255 +1,325 @@
+/**
+ * Copyright (C) 2015 by Liangliang Nan (liangliang.nan@gmail.com)
+ * https://3d.bk.tudelft.nl/liangliang/
+ *
+ * This file is part of Easy3D. If it is useful in your research/work,
+ * I would be grateful if you show your appreciation by citing it:
+ * ------------------------------------------------------------------
+ *      Liangliang Nan.
+ *      Easy3D: a lightweight, easy-to-use, and efficient C++
+ *      library for processing and rendering 3D data. 2018.
+ * ------------------------------------------------------------------
+ * Easy3D is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License Version 3
+ * as published by the Free Software Foundation.
+ *
+ * Easy3D is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include "triangulation.h"
 #include "matrix_algo.h"
 #include <easy3d/optimizer/optimizer_lm.h>
-#include <iostream>
-#include <vector>
-#include <cmath>
 
 using namespace easy3d;
 
 //------------------------------------------------------------------------------
-// 辅助函数：打印矩阵
+// 自定义辅助函数：计算 3x3 矩阵的 Frobenius 范数
 //------------------------------------------------------------------------------
-void printMatrix(const Matrix& M, const std::string& name) {
-    std::cout << name << " (" << M.rows() << "x" << M.cols() << "):\n";
-    for (int i = 0; i < M.rows(); ++i) {
-        for (int j = 0; j < M.cols(); ++j) {
-            std::cout << M(i, j) << "\t";
-        }
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
-}
-
-//------------------------------------------------------------------------------
-// 辅助函数：打印 Vector3D
-//------------------------------------------------------------------------------
-void printVector3D(const Vector3D& v, const std::string& name) {
-    std::cout << name << " = (" << v[0] << ", " << v[1] << ", " << v[2] << ")" << std::endl;
-}
-
-//------------------------------------------------------------------------------
-// 新增：基于 DLT 的三角测量（求解齐次 3D 点）
-//------------------------------------------------------------------------------
-static Vector4D triangulatePoint(const Matrix34& P1, const Matrix34& P2,
-                                 const Vector2D& pt1, const Vector2D& pt2)
+static double frobenius_norm_33(const Matrix33 &M)
 {
-    Matrix A(4, 4, 0.0);
-    // 对第一幅图像
-    for (int c = 0; c < 4; c++){
-        A(0, c) = pt1[1] * P1.get_row(2)[c] - P1.get_row(1)[c];
+    double sum = 0.0;
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            sum += M(i,j) * M(i,j);
+    return std::sqrt(sum);
+}
+
+//------------------------------------------------------------------------------
+// 自定义辅助函数：计算 3x3 矩阵的行列式
+//------------------------------------------------------------------------------
+static double determinant_33(const Matrix33 &M)
+{
+    // M = [ a, b, c; d, e, f; g, h, i ]
+    double a = M(0,0), b = M(0,1), c = M(0,2);
+    double d = M(1,0), e = M(1,1), f = M(1,2);
+    double g = M(2,0), h = M(2,1), i = M(2,2);
+    return a * (e*i - f*h) - b * (d*i - f*g) + c * (d*h - e*g);
+}
+
+//------------------------------------------------------------------------------
+// 辅助函数：归一化 2D 点（转换为齐次坐标）
+//------------------------------------------------------------------------------
+static void normalizePoints(const std::vector<Vector2D>& pts,
+                            std::vector<Vector3D>& pts_h, Matrix33& T)
+{
+    int N = pts.size();
+    double mean_x = 0, mean_y = 0;
+    for (int i = 0; i < N; ++i) {
+        mean_x += pts[i][0];
+        mean_y += pts[i][1];
     }
-    for (int c = 0; c < 4; c++){
-        A(1, c) = P1.get_row(0)[c] - pt1[0] * P1.get_row(2)[c];
+    mean_x /= N;
+    mean_y /= N;
+    double avg_dist = 0;
+    for (int i = 0; i < N; ++i) {
+        double dx = pts[i][0] - mean_x;
+        double dy = pts[i][1] - mean_y;
+        avg_dist += std::sqrt(dx * dx + dy * dy);
     }
-    // 对第二幅图像
-    for (int c = 0; c < 4; c++){
-        A(2, c) = pt2[1] * P2.get_row(2)[c] - P2.get_row(1)[c];
+    avg_dist /= N;
+    double scale = std::sqrt(2.0) / avg_dist;
+    // 构造归一化矩阵 T
+    T = Matrix33(scale,      0, -scale * mean_x,
+                 0,      scale, -scale * mean_y,
+                 0,          0,              1);
+    pts_h.resize(N);
+    for (int i = 0; i < N; ++i) {
+        pts_h[i] = pts[i].homogeneous();  // 转为齐次坐标
+        pts_h[i] = T * pts_h[i];           // 归一化
     }
-    for (int c = 0; c < 4; c++){
-        A(3, c) = P2.get_row(0)[c] - pt2[0] * P2.get_row(2)[c];
+}
+
+//------------------------------------------------------------------------------
+// 辅助函数：计算基础矩阵 F（归一化的8点算法）
+//------------------------------------------------------------------------------
+static Matrix33 computeFundamentalMatrix(const std::vector<Vector2D>& pts1,
+                                           const std::vector<Vector2D>& pts2)
+{
+    int N = pts1.size();
+    if (N < 8) {
+        std::cerr << "Not enough points to compute F" << std::endl;
+        return Matrix33();
     }
-    std::cout << "triangulatePoint: Matrix A:" << std::endl;
-    printMatrix(A, "A");
+    std::vector<Vector3D> pts1_norm, pts2_norm;
+    Matrix33 T1, T2;
+    normalizePoints(pts1, pts1_norm, T1);
+    normalizePoints(pts2, pts2_norm, T2);
+
+    // 构建设计矩阵 A (N x 9)
+    Matrix A(N, 9, 0.0);
+    for (int i = 0; i < N; ++i) {
+        double x1 = pts1_norm[i][0];
+        double y1 = pts1_norm[i][1];
+        double x2 = pts2_norm[i][0];
+        double y2 = pts2_norm[i][1];
+        A(i,0) = x2 * x1;
+        A(i,1) = x2 * y1;
+        A(i,2) = x2;
+        A(i,3) = y2 * x1;
+        A(i,4) = y2 * y1;
+        A(i,5) = y2;
+        A(i,6) = x1;
+        A(i,7) = y1;
+        A(i,8) = 1;
+    }
     Matrix U, S, V;
+    // 调用 matrix_algo.h 中的 svd_decompose（返回 V 而非 Vᵀ）
     svd_decompose(A, U, S, V);
+    // 计算 Vt = V^T
     Matrix Vt = V.transpose();
-    Vector X = Vt.get_row(Vt.rows()-1);
-    std::cout << "triangulatePoint: Homogeneous solution X = " << X << std::endl;
-    return X;
-}
-
-//------------------------------------------------------------------------------
-// Step #2: 确定正确的 R 和 t
-//------------------------------------------------------------------------------
-static void determine_correct_pose(const Matrix33& K,
-                                   const Matrix33& R1, const Matrix33& R2,
-                                   const Vector3D& t,
-                                   const std::vector<Vector2D>& pts1,
-                                   const std::vector<Vector2D>& pts2,
-                                   Matrix33& best_R, Vector3D& best_t)
-{
-    std::vector<Matrix33> Rs = {R1, R1, R2, R2};
-    std::vector<Vector3D> ts = {t, -t, t, -t};
-
-    int best_count = -1;
-    for (int i = 0; i < 4; ++i) {
-        // 构造投影矩阵 P1 = K [I|0]
-        Matrix34 P1(K(0,0), K(0,1), K(0,2), 0,
-                    K(1,0), K(1,1), K(1,2), 0,
-                    K(2,0), K(2,1), K(2,2), 0);
-
-        // 构造投影矩阵 P2 = K [R|t]
-        Matrix34 P2(
-            K(0,0) * Rs[i](0,0) + K(0,1) * Rs[i](1,0) + K(0,2) * Rs[i](2,0),
-            K(0,0) * Rs[i](0,1) + K(0,1) * Rs[i](1,1) + K(0,2) * Rs[i](2,1),
-            K(0,0) * Rs[i](0,2) + K(0,1) * Rs[i](1,2) + K(0,2) * Rs[i](2,2),
-            K(0,0) * ts[i][0]  + K(0,1) * ts[i][1]  + K(0,2) * ts[i][2],
-            K(1,0) * Rs[i](0,0) + K(1,1) * Rs[i](1,0) + K(1,2) * Rs[i](2,0),
-            K(1,0) * Rs[i](0,1) + K(1,1) * Rs[i](1,1) + K(1,2) * Rs[i](2,1),
-            K(1,0) * Rs[i](0,2) + K(1,1) * Rs[i](1,2) + K(1,2) * Rs[i](2,2),
-            K(1,0) * ts[i][0]  + K(1,1) * ts[i][1]  + K(1,2) * ts[i][2],
-            K(2,0) * Rs[i](0,0) + K(2,1) * Rs[i](1,0) + K(2,2) * Rs[i](2,0),
-            K(2,0) * Rs[i](0,1) + K(2,1) * Rs[i](1,1) + K(2,2) * Rs[i](2,1),
-            K(2,0) * Rs[i](0,2) + K(2,1) * Rs[i](1,2) + K(2,2) * Rs[i](2,2),
-            K(2,0) * ts[i][0]  + K(2,1) * ts[i][1]  + K(2,2) * ts[i][2]
-        );
-
-        int count = 0;
-        for (size_t j = 0; j < pts1.size(); ++j) {
-            Vector4D Xh = triangulatePoint(P1, P2, pts1[j], pts2[j]);
-            Vector3D X(Xh[0] / Xh[3], Xh[1] / Xh[3], Xh[2] / Xh[3]);
-            if (X[2] > 0)
-                count++;
-        }
-        if (count > best_count) {
-            best_count = count;
-            best_R = Rs[i];
-            best_t = ts[i];
-        }
+    Vector f = Vt.get_row(Vt.rows()-1);
+    Matrix33 F_norm;
+    for (int i = 0; i < 9; ++i) {
+        F_norm(i/3, i%3) = f[i];
     }
+    // 强制 F 为秩2：对 F_norm 做 SVD，令最小奇异值置零
+    Matrix33 Uf, Sf, Vtf;
+    svd_decompose(F_norm, Uf, Sf, Vtf);
+    // 注意 Vtf 此处为 V 而非 Vᵀ，重新转置
+    Matrix33 Vt_f = Vtf.transpose();
+    Sf(2,2) = 0;
+    Matrix33 F_norm2 = Uf * Sf * Vt_f;
+    // 反归一化：F = T2^T * F_norm2 * T1
+    Matrix33 F = T2.transpose() * F_norm2 * T1;
+    double normF = frobenius_norm_33(F);
+    if (normF != 0) F = F / normF;
+    return F;
 }
 
 //------------------------------------------------------------------------------
-// Step #3.1: 计算投影矩阵：P = K [R|t]
+// 辅助函数：构造投影矩阵 P = K * [R | t]
 //------------------------------------------------------------------------------
-static Matrix34 compute_projection_matrix(const Matrix33& K, const Matrix33& R, const Vector3D& t)
+static Matrix34 constructProjectionMatrix(const Matrix33& K, const Matrix33& R, const Vector3D& t)
 {
-    Matrix34 P;
-    for (int i = 0; i < 3; ++i) {
+    Matrix34 P(3,4, 0.0);
+    // P[0:2, 0:3] = K * R
+    for (int i = 0; i < 3; ++i)
         for (int j = 0; j < 3; ++j) {
-            P(i, j) = K(i, 0) * R(0, j) + K(i, 1) * R(1, j) + K(i, 2) * R(2, j);
+            double sum = 0;
+            for (int k = 0; k < 3; ++k)
+                sum += K(i,k) * R(k,j);
+            P(i,j) = sum;
         }
-        P(i, 3) = K(i, 0) * t[0] + K(i, 1) * t[1] + K(i, 2) * t[2];
+    // P[0:2, 3] = K * t
+    for (int i = 0; i < 3; ++i) {
+        double sum = 0;
+        for (int k = 0; k < 3; ++k)
+            sum += K(i,k) * t[k];
+        P(i,3) = sum;
     }
     return P;
 }
 
 //------------------------------------------------------------------------------
-// Step #3.2: 线性三角测量（计算所有对应点的 3D 坐标）
+// 辅助函数：三角测量（DLT）单个点
 //------------------------------------------------------------------------------
-static void triangulate_all_points(const Matrix34& P1, const Matrix34& P2,
-                                   const std::vector<Vector2D>& pts1,
-                                   const std::vector<Vector2D>& pts2,
-                                   std::vector<Vector3D>& points_3d)
+static Vector4D triangulatePoint(const Matrix34& P1, const Matrix34& P2,
+                                   const Vector2D& x1, const Vector2D& x2)
 {
-    points_3d.clear();
-    for (size_t i = 0; i < pts1.size(); ++i) {
-        Vector4D Xh = triangulatePoint(P1, P2, pts1[i], pts2[i]);
-        points_3d.emplace_back(Xh[0] / Xh[3], Xh[1] / Xh[3], Xh[2] / Xh[3]);
-    }
+    Matrix A(4, 4, 0.0);
+    Vector row0 = x1[0] * P1.get_row(2) - P1.get_row(0);
+    Vector row1 = x1[1] * P1.get_row(2) - P1.get_row(1);
+    Vector row2 = x2[0] * P2.get_row(2) - P2.get_row(0);
+    Vector row3 = x2[1] * P2.get_row(2) - P2.get_row(1);
+    A.set_row(0, row0);
+    A.set_row(1, row1);
+    A.set_row(2, row2);
+    A.set_row(3, row3);
+    Matrix U, S, V;
+    svd_decompose(A, U, S, V);
+    Matrix Vt = V.transpose();
+    Vector X = Vt.get_row(Vt.rows()-1);
+    return X;
 }
 
 //------------------------------------------------------------------------------
-// Step #3.3: [Optional] 非线性最小二乘优化对 3D 点进行精细化
+// 辅助函数：计算候选解的正位性，返回正深度点数，同时输出所有 3D 点
 //------------------------------------------------------------------------------
-class MyObjective : public Objective_LM {
-public:
-    // 显式调用 Objective_LM 构造函数，传入残差数量和变量数量
-    MyObjective(const Matrix34& P1, const Matrix34& P2,
-                const std::vector<Vector2D>& pts1,
-                const std::vector<Vector2D>& pts2,
-                size_t num_points)
-        : Objective_LM(static_cast<int>(num_points * 4), static_cast<int>(num_points * 3)),
-          P1_(P1), P2_(P2), pts1_(pts1), pts2_(pts2), num_points_(num_points) {}
-
-    virtual bool evaluate(const std::vector<double>& params, std::vector<double>& residuals) {
-        residuals.resize(num_points_ * 4);
-        for (size_t i = 0; i < num_points_; ++i) {
-            Vector3D X(params[i*3], params[i*3+1], params[i*3+2]);
-            Vector4D Xh1 = P1_ * X.homogeneous();
-            Vector4D Xh2 = P2_ * X.homogeneous();
-            double proj1_x = Xh1[0] / Xh1[2];
-            double proj1_y = Xh1[1] / Xh1[2];
-            double proj2_x = Xh2[0] / Xh2[2];
-            double proj2_y = Xh2[1] / Xh2[2];
-            residuals[i*4]     = proj1_x - pts1_[i][0];
-            residuals[i*4 + 1] = proj1_y - pts1_[i][1];
-            residuals[i*4 + 2] = proj2_x - pts2_[i][0];
-            residuals[i*4 + 3] = proj2_y - pts2_[i][1];
-        }
-        return true;
-    }
-private:
-    Matrix34 P1_, P2_;
-    std::vector<Vector2D> pts1_, pts2_;
-    size_t num_points_;
-};
-
-static void refine_3D_points(const Matrix34& P1, const Matrix34& P2,
+static int computeCheirality(const Matrix34& P1, const Matrix34& P2,
                              const std::vector<Vector2D>& pts1,
                              const std::vector<Vector2D>& pts2,
-                             std::vector<Vector3D>& points_3d)
+                             std::vector<Vector3D>& points3d)
 {
-    size_t N = points_3d.size();
-    MyObjective objective(P1, P2, pts1, pts2, N);
-    std::vector<double> params(N * 3);
-    for (size_t i = 0; i < N; ++i) {
-        params[i * 3]     = points_3d[i][0];
-        params[i * 3 + 1] = points_3d[i][1];
-        params[i * 3 + 2] = points_3d[i][2];
+    int count = 0;
+    points3d.clear();
+    int N = pts1.size();
+    for (int i = 0; i < N; ++i) {
+        Vector4D Xh = triangulatePoint(P1, P2, pts1[i], pts2[i]);
+        // 非齐次坐标：X = (Xh[0], Xh[1], Xh[2]) / Xh[3]
+        Vector3D X(Xh[0], Xh[1], Xh[2]);
+        X = X / Xh[3];
+        points3d.push_back(X);
+        // 对于第一个摄像机（P1 = K[I|0]），深度为 X[2]
+        if (X[2] <= 0)
+            continue;
+        // 对于第二个摄像机，计算 P2 * X.homogeneous()
+        Vector4D Xh2 = P2 * X.homogeneous();
+        if (Xh2[2] > 0)
+            count++;
     }
-    easy3d::Optimizer_LM optimizer;
-    optimizer.optimize(&objective, params, nullptr);
-    for (size_t i = 0; i < N; ++i) {
-        points_3d[i] = Vector3D(params[i * 3], params[i * 3 + 1], params[i * 3 + 2]);
-    }
+    return count;
 }
 
 //------------------------------------------------------------------------------
 // 主函数：Triangulation::triangulation()
 //------------------------------------------------------------------------------
 bool Triangulation::triangulation(
-    double fx, double fy,     /// input: the focal lengths (same for both cameras)
-    double cx, double cy,     /// input: the principal point (same for both cameras)
-    double s,                 /// input: the skew factor (same for both cameras)
-    const std::vector<Vector2D>& points_0,  /// input: 2D image points in the 1st image.
-    const std::vector<Vector2D>& points_1,  /// input: 2D image points in the 2nd image.
-    std::vector<Vector3D>& points_3d,       /// output: reconstructed 3D points
-    Matrix33& R,   /// output: recovered rotation of 2nd camera
-    Vector3D& t    /// output: recovered translation of 2nd camera
+        double fx, double fy,     /// input: the focal lengths (same for both cameras)
+        double cx, double cy,     /// input: the principal point (same for both cameras)
+        double s,                 /// input: the skew factor (same for both cameras)
+        const std::vector<Vector2D> &points_0,  /// input: 2D image points in the 1st image.
+        const std::vector<Vector2D> &points_1,  /// input: 2D image points in the 2nd image.
+        std::vector<Vector3D> &points_3d,       /// output: reconstructed 3D points
+        Matrix33 &R,   /// output: 3 by 3 matrix, which is the recovered rotation of the 2nd camera
+        Vector3D &t    /// output: 3D vector, which is the recovered translation of the 2nd camera
 ) const
 {
-    std::cout << "\nStarting triangulation process...\n\n";
+    std::cout << "\nTODO: implement the 'triangulation()' function in the file 'Triangulation/triangulation_method.cpp'\n\n";
 
     if (points_0.size() < 8 || points_0.size() != points_1.size()) {
-        std::cerr << "Invalid input: not enough points or point numbers don't match.\n";
+        std::cerr << "Invalid input: need at least 8 corresponding points and equal number in both views." << std::endl;
         return false;
     }
-    size_t num_points = points_0.size();
 
-    // 这里假设已经计算出 F、E 及候选 R1, R2, t_candidate（此处用占位数据演示）
+    // 构造相机内参矩阵 K = [ fx  s  cx; 0  fy  cy; 0 0 1 ]
     Matrix33 K(fx, s, cx,
                0, fy, cy,
-               0, 0, 1);
-    printMatrix(K, "K");
+               0,  0,  1);
 
-    // 占位候选解：使用单位矩阵作为候选旋转，t_candidate 为 (0.1, 0, 0)
-    Matrix33 R1 = Matrix33::identity(1.0);
-    Matrix33 R2 = Matrix33::identity(1.0);
-    Vector3D t_candidate(0.1, 0.0, 0.0);
+    // ----------------------------------------------------------------------
+    // Step 1: 估计基础矩阵 F（归一化的8点算法）
+    // ----------------------------------------------------------------------
+    Matrix33 F = computeFundamentalMatrix(points_0, points_1);
+    std::cout << "Computed Fundamental Matrix F:" << std::endl;
+    std::cout << F << std::endl;
 
-    // --- Step #2: 确定正确的 R 和 t ---
-    Matrix33 best_R;
-    Vector3D best_t;
-    determine_correct_pose(K, R1, R2, t_candidate, points_0, points_1, best_R, best_t);
-    R = best_R;
-    t = best_t;
-    std::cout << "Selected relative pose:" << std::endl;
-    printMatrix(R, "R");
-    printVector3D(t, "t");
+    // ----------------------------------------------------------------------
+    // Step 2: 计算本质矩阵 E = K^T * F * K
+    // ----------------------------------------------------------------------
+    Matrix33 E = K.transpose() * F * K;
+    std::cout << "Computed Essential Matrix E:" << std::endl;
+    std::cout << E << std::endl;
 
-    // --- Step #3.1: 计算投影矩阵 ---
-    Matrix34 P1_proj = compute_projection_matrix(K, Matrix33::identity(1.0), Vector3D(0,0,0)); // P1 = K[I|0]
-    Matrix34 P2_proj = compute_projection_matrix(K, R, t);  // P2 = K[R|t]
+    // ----------------------------------------------------------------------
+    // Step 3: 对 E 做 SVD 分解，并强制其奇异值为 [sigma, sigma, 0]
+    // ----------------------------------------------------------------------
+    Matrix U, S_mat, V;
+    svd_decompose(E, U, S_mat, V);
+    Matrix Vt = V.transpose();
+    double sigma = (S_mat(0,0) + S_mat(1,1)) / 2.0;
+    S_mat(0,0) = sigma; S_mat(1,1) = sigma; S_mat(2,2) = 0;
+    E = U * S_mat * Vt;
 
-    // --- Step #3.2: 线性三角测量 ---
-    triangulate_all_points(P1_proj, P2_proj, points_0, points_1, points_3d);
-    std::cout << "After linear triangulation, number of points: " << points_3d.size() << std::endl;
+    // ----------------------------------------------------------------------
+    // Step 4: 恢复候选相机姿态
+    // ----------------------------------------------------------------------
+    Matrix33 W(0, -1, 0,
+               1,  0, 0,
+               0,  0, 1);
+    Matrix33 R1 = U * W * Vt;
+    Matrix33 R2 = U * W.transpose() * Vt;
+    if (determinant_33(R1) < 0)
+        R1 = R1 * (-1.0);
+    if (determinant_33(R2) < 0)
+        R2 = R2 * (-1.0);
+    Vector3D t_candidate = U.get_column(2); // 仅确定方向
 
-    // --- Step #3.3: [Optional] 非线性优化 3D 点 ---
-    refine_3D_points(P1_proj, P2_proj, points_0, points_1, points_3d);
-    std::cout << "After non-linear refinement, number of points: " << points_3d.size() << std::endl;
+    std::vector<Matrix33> Rs = {R1, R1, R2, R2};
+    std::vector<Vector3D> ts = {t_candidate, t_candidate * (-1.0), t_candidate, t_candidate * (-1.0)};
 
+    int best_count = -1;
+    Matrix33 bestR;
+    Vector3D bestt;
+    std::vector<Vector3D> best_points3d;
+    Matrix33 I_mat(1,0,0, 0,1,0, 0,0,1);
+    Vector3D zero(0,0,0);
+    Matrix34 P1 = constructProjectionMatrix(K, I_mat, zero);
+    for (int i = 0; i < 4; ++i) {
+        Matrix34 P2 = constructProjectionMatrix(K, Rs[i], ts[i]);
+        std::vector<Vector3D> current_points3d;
+        int count = computeCheirality(P1, P2, points_0, points_1, current_points3d);
+        std::cout << "Candidate " << i+1 << ": cheirality count = " << count << std::endl;
+        if (count > best_count) {
+            best_count = count;
+            bestR = Rs[i];
+            bestt = ts[i];
+            best_points3d = current_points3d;
+        }
+    }
+    R = bestR;
+    t = bestt;
+    std::cout << "Recovered Rotation R:" << std::endl;
+    std::cout << R << std::endl;
+    std::cout << "Recovered Translation t:" << std::endl;
+    std::cout << t << std::endl;
+
+    // ----------------------------------------------------------------------
+    // Step 5: 重建所有 3D 点 (三角测量)
+    // ----------------------------------------------------------------------
+    Matrix34 P2_final = constructProjectionMatrix(K, R, t);
+    points_3d.clear();
+    int N_pts = points_0.size();
+    for (int i = 0; i < N_pts; ++i) {
+        Vector4D Xh = triangulatePoint(P1, P2_final, points_0[i], points_1[i]);
+        Vector3D X(Xh[0], Xh[1], Xh[2]);
+        X = X / Xh[3];
+        points_3d.push_back(X);
+    }
     return points_3d.size() > 0;
 }
