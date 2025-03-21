@@ -1,8 +1,8 @@
-# Install script for directory: D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/easy3d/util
+# Install script for directory: D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/easy3d/util
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/install/x64-Debug")
+  set(CMAKE_INSTALL_PREFIX "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/install/x64-debug")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 

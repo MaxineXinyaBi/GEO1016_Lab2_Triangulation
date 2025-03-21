@@ -1,8 +1,8 @@
-# Install script for directory: D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/3rd_party/cminpack/cmake
+# Install script for directory: D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/3rd_party/cminpack/cmake
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/install/x64-Debug")
+  set(CMAKE_INSTALL_PREFIX "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/install/x64-debug")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -33,10 +33,10 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "pkgconfig" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/3rd_party/cminpack/cmake/cminpack.pc")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/pkgconfig" TYPE FILE FILES "D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/3rd_party/cminpack/cmake/cminpack.pc")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/cmake/CMinpack" TYPE FILE FILES "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/3rd_party/cminpack/cmake/CMinpackConfig.cmake")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/cmake/CMinpack" TYPE FILE FILES "D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/3rd_party/cminpack/cmake/CMinpackConfig.cmake")
 endif()
 

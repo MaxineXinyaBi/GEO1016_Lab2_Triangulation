@@ -227,7 +227,7 @@ rule CXX_EXECUTABLE_LINKER__Tutorial_NonlinearLeastSquares_Debug
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = "D:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" --regenerate-during-build -SD:\Sue-Delft\Q3\3D\GEO1016_Lab2_Triangulation\A2_Triangulation\A2_Triangulation_Code -BD:\Sue-Delft\Q3\3D\GEO1016_Lab2_Triangulation\A2_Triangulation\A2_Triangulation_Code\out\build\x64-Debug
+  command = "D:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe" --regenerate-during-build -SD:\Sue-Delft\Q3\3D\GEO1016_lab2_Triangulation\A2_Triangulation\A2_Triangulation_Code -BD:\Sue-Delft\Q3\3D\GEO1016_lab2_Triangulation\A2_Triangulation\A2_Triangulation_Code\out\build\x64-Debug
   description = Re-running CMake...
   generator = 1
 

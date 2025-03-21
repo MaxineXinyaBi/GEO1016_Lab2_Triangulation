@@ -1,8 +1,8 @@
-# Install script for directory: D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/easy3d
+# Install script for directory: D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/easy3d
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/install/x64-Debug")
+  set(CMAKE_INSTALL_PREFIX "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/install/x64-debug")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -34,11 +34,11 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/easy3d/core/cmake_install.cmake")
-  include("D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/easy3d/fileio/cmake_install.cmake")
-  include("D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/easy3d/util/cmake_install.cmake")
-  include("D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/easy3d/viewer/cmake_install.cmake")
-  include("D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/easy3d/optimizer/cmake_install.cmake")
+  include("D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/easy3d/core/cmake_install.cmake")
+  include("D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/easy3d/fileio/cmake_install.cmake")
+  include("D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/easy3d/util/cmake_install.cmake")
+  include("D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/easy3d/viewer/cmake_install.cmake")
+  include("D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/easy3d/optimizer/cmake_install.cmake")
 
 endif()
 

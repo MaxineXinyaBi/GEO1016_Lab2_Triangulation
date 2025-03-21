@@ -1,8 +1,8 @@
-# Install script for directory: D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/3rd_party/cminpack
+# Install script for directory: D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/3rd_party/cminpack
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/install/x64-Debug")
+  set(CMAKE_INSTALL_PREFIX "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/install/x64-debug")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -33,19 +33,19 @@ if(NOT DEFINED CMAKE_CROSSCOMPILING)
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "library" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/lib/3rd_cminpack.lib")
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/lib/3rd_cminpack.lib")
 endif()
 
 if(CMAKE_INSTALL_COMPONENT STREQUAL "cminpack_hdrs" OR NOT CMAKE_INSTALL_COMPONENT)
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/cminpack-" TYPE FILE FILES
-    "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/3rd_party/cminpack/cminpack.h"
-    "D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/3rd_party/cminpack/minpack.h"
+    "D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/3rd_party/cminpack/cminpack.h"
+    "D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/3rd_party/cminpack/minpack.h"
     )
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("D:/Sue-Delft/Q3/3D/GEO1016_Lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/3rd_party/cminpack/cmake/cmake_install.cmake")
+  include("D:/Sue-Delft/Q3/3D/GEO1016_lab2_Triangulation/A2_Triangulation/A2_Triangulation_Code/out/build/x64-Debug/3rd_party/cminpack/cmake/cmake_install.cmake")
 
 endif()
 
